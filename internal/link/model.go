@@ -7,15 +7,25 @@ import (
 
 type Link struct {
 	gorm.Model
-	Url  string `json:"url"`
-	Hash string `json:"hash" gorm:"uniqueIndex"`
+	Url     string `json:"url"`
+	Hash    string `json:"hash" gorm:"uniqueIndex"`
+	hashLen int
 }
 
 func NewLink(url string, hashLen int) *Link {
-	return &Link{
-		Url:  url,
-		Hash: randStringRunes(hashLen),
+	if hashLen == 0 {
+		hashLen = 8
 	}
+	link := &Link{
+		Url:     url,
+		hashLen: hashLen,
+	}
+	link.GenerateHash()
+	return link
+}
+
+func (link *Link) GenerateHash() {
+	link.Hash = randStringRunes(link.hashLen)
 }
 
 var letterRunes = []rune("abcdefghiklmnoprstuvwxyzABCDEFGHIKLMOPRSTUVWZYZ")

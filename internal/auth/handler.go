@@ -5,19 +5,23 @@ import (
 	"go/adv-demo/config"
 	"go/adv-demo/pkg/request"
 	"go/adv-demo/pkg/response"
+	"log"
 	"net/http"
 )
 
 type AuthHandlerDeps struct {
 	*config.Config
+	*AuthService
 }
 type AuthHandler struct {
 	*config.Config
+	*AuthService
 }
 
 func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
 	handler := &AuthHandler{
-		Config: deps.Config,
+		Config:      deps.Config,
+		AuthService: deps.AuthService,
 	}
 	router.HandleFunc("POST /auth/register", handler.Register())
 	router.HandleFunc("POST /auth/login", handler.Login())
@@ -29,7 +33,8 @@ func (handler *AuthHandler) Register() http.HandlerFunc {
 		if err != nil {
 			return
 		}
-		fmt.Println("Register with payload", payload)
+		log.Println("Register with payload", payload)
+		handler.AuthService.Register(payload.Email, payload.Name, payload.Password)
 		res := RegisterResponse{
 			RegisterSuccess: true,
 		}

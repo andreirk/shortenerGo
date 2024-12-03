@@ -6,24 +6,48 @@ import (
 	"go/adv-demo/internal/auth"
 	"go/adv-demo/internal/hello"
 	"go/adv-demo/internal/link"
+	"go/adv-demo/internal/user"
+	"go/adv-demo/pkg/db"
+	"go/adv-demo/pkg/midleware"
+	"log"
 	"net/http"
 )
 
 func main() {
 	conf := config.LoadConfig()
 	router := http.NewServeMux()
+	db := db.NewDb(conf)
+
+	//Repositories
+	linkRepository := link.NewLinkRepository(db)
+	userRepository := user.NewUserRepository(db)
+
+	//Services
+	authService := auth.NewAuthService(userRepository)
 
 	//Handlers
 	hello.NewHelloHandler(router)
 	auth.NewAuthHandler(router, auth.AuthHandlerDeps{
-		Config: conf,
+		Config:      conf,
+		AuthService: authService,
 	})
-	link.NewLinkHandler(router, link.LinkDeps{})
+	link.NewLinkHandler(router, link.LinkDeps{
+		LinkRepository: linkRepository,
+	})
+
+	//Midlewares
+	midlewareStack := midleware.Chain(
+		midleware.CORS,
+		midleware.Logging,
+	)
 
 	server := http.Server{
 		Addr:    "localhost:" + conf.Port,
-		Handler: router,
+		Handler: midlewareStack(router),
 	}
 	fmt.Println("Server is listening on port:", conf.Port)
-	server.ListenAndServe()
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

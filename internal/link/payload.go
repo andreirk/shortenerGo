@@ -1,9 +1,14 @@
 package link
 
-type CreateLinkRequest struct {
-	Url string `json:"url"`
+type LinkCreateRequest struct {
+	Url string `json:"url" validate:"required,url"`
 }
 
-type CreateLinkResponse struct {
+type LinkUpdateRequest struct {
+	Url  string `json:"url" validate:"required,url"`
+	Hash string `json:"hash"`
+}
+
+type LinkCreateResponse struct {
 	Success bool `json:"success"`
 }
