@@ -16,5 +16,6 @@ type RegisterRequest struct {
 }
 
 type RegisterResponse struct {
-	RegisterSuccess bool `json:"registerSuccess"`
+	RegisterSuccess bool   `json:"registerSuccess"`
+	Message         string `json:"message"`
 }

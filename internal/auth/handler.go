@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"go/adv-demo/config"
+	"go/adv-demo/pkg/jwt"
 	"go/adv-demo/pkg/request"
 	"go/adv-demo/pkg/response"
 	"log"
@@ -37,6 +38,7 @@ func (handler *AuthHandler) Register() http.HandlerFunc {
 		handler.AuthService.Register(payload.Email, payload.Name, payload.Password)
 		res := RegisterResponse{
 			RegisterSuccess: true,
+			Message:         "Please login",
 		}
 		response.JsonResponse(w, res, http.StatusOK)
 		fmt.Println("Register")
@@ -49,10 +51,18 @@ func (handler *AuthHandler) Login() http.HandlerFunc {
 		if err != nil {
 			return
 		}
-		fmt.Println("Login with payload", payload)
-		res := LoginResponse{
-			AccessToken: "token 1234",
+		email, err := handler.AuthService.Login(payload.Email, payload.Password)
+		if err != nil {
+			response.JsonResponse(w, nil, http.StatusUnauthorized)
+			return
 		}
-		response.JsonResponse(w, res, http.StatusOK)
+		jwtToken, err := jwt.NewJwt(handler.Config.Auth.Secret).Sign(email)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		resp := LoginResponse{
+			AccessToken: jwtToken,
+		}
+		response.JsonResponse(w, resp, http.StatusOK)
 	}
 }
