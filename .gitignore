@@ -23,4 +23,6 @@ go.work.sum
 
 .idea
 
-./.env
+.env
+.env*.local
+!.env.example
