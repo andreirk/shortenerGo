@@ -1,8 +1,12 @@
 package event
 
+const (
+	EventLinkVisited = "link.visited"
+)
+
 type Event struct {
-	Type string
-	Data any
+	Type    string
+	Payload any
 }
 type EventBus struct {
 	bus chan Event

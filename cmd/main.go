@@ -9,6 +9,7 @@ import (
 	"go/adv-demo/internal/stat"
 	"go/adv-demo/internal/user"
 	"go/adv-demo/pkg/db"
+	"go/adv-demo/pkg/event"
 	"go/adv-demo/pkg/midleware"
 	"log"
 	"net/http"
@@ -17,15 +18,20 @@ import (
 func main() {
 	conf := config.LoadConfig()
 	router := http.NewServeMux()
-	db := db.NewDb(conf)
+	dbInstance := db.NewDb(conf)
+	eventBus := event.NewEventBus()
 
 	//Repositories
-	linkRepository := link.NewLinkRepository(db)
-	userRepository := user.NewUserRepository(db)
-	statRepository := stat.NewStatRepository(db)
+	linkRepository := link.NewLinkRepository(dbInstance)
+	userRepository := user.NewUserRepository(dbInstance)
+	statRepository := stat.NewStatRepository(dbInstance)
 
 	//Services
 	authService := auth.NewAuthService(userRepository)
+	statService := stat.NewStatService(&stat.StatServiceDeps{
+		EventBus:       eventBus,
+		StatRepository: statRepository,
+	})
 
 	//Handlers
 	hello.NewHelloHandler(router)
@@ -33,10 +39,14 @@ func main() {
 		Config:      conf,
 		AuthService: authService,
 	})
+	stat.NewStatHandler(router, stat.StatHandlerDeps{
+		StatRepository: statRepository,
+		Config:         conf,
+	})
 
 	link.NewLinkHandler(router, link.LinkDeps{
 		LinkRepository: linkRepository,
-		StatRepository: statRepository,
+		EventBus:       eventBus,
 		Config:         conf,
 	})
 
@@ -50,6 +60,7 @@ func main() {
 		Addr:    "localhost:" + conf.Port,
 		Handler: midlewareStack(router),
 	}
+	go statService.AddClick()
 	fmt.Println("Server is listening on port:", conf.Port)
 	err := server.ListenAndServe()
 	if err != nil {
