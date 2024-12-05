@@ -56,7 +56,9 @@ func (handler *AuthHandler) Login() http.HandlerFunc {
 			response.JsonResponse(w, nil, http.StatusUnauthorized)
 			return
 		}
-		jwtToken, err := jwt.NewJwt(handler.Config.Auth.Secret).Sign(email)
+		jwtToken, err := jwt.NewJwt(handler.Config.Auth.Secret).Sign(jwt.JwtData{
+			Email: email,
+		})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

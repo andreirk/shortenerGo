@@ -2,6 +2,7 @@ package link
 
 import (
 	"fmt"
+	"go/adv-demo/config"
 	"go/adv-demo/pkg/midleware"
 	"go/adv-demo/pkg/request"
 	"go/adv-demo/pkg/response"
@@ -11,11 +12,12 @@ import (
 	"strconv"
 )
 
-type LinkHandler struct {
+type LinkDeps struct {
 	LinkRepository *LinkRepository
+	Config         *config.Config
 }
 
-type LinkDeps struct {
+type LinkHandler struct {
 	LinkRepository *LinkRepository
 }
 
@@ -24,7 +26,7 @@ func NewLinkHandler(router *http.ServeMux, deps LinkDeps) *LinkHandler {
 		LinkRepository: deps.LinkRepository,
 	}
 	router.HandleFunc("POST /link", handler.Create())
-	router.Handle("PATCH /link/{id}", midleware.IsAuthed(handler.Update()))
+	router.Handle("PATCH /link/{id}", midleware.CheckAuthed(handler.Update(), deps.Config))
 	router.HandleFunc("DELETE /link/{id}", handler.Delete())
 	router.HandleFunc("GET /link/{hash}", handler.GoTo())
 
@@ -63,6 +65,10 @@ func (handler *LinkHandler) Create() http.HandlerFunc {
 
 func (handler *LinkHandler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		email, ok := r.Context().Value(midleware.ContextEmailKey).(string)
+		if ok {
+			println(email)
+		}
 		body, err := request.HandleBody[LinkUpdateRequest](&w, r)
 		if err != nil {
 			return
@@ -124,5 +130,24 @@ func (handler *LinkHandler) GoTo() http.HandlerFunc {
 			return
 		}
 		http.Redirect(w, r, foundLink.Url, http.StatusTemporaryRedirect)
+	}
+}
+
+func (handler *LinkHandler) GetAll() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limit, err1 := strconv.Atoi(r.URL.Query().Get("limit"))
+		offset, err2 := strconv.Atoi(r.URL.Query().Get("offset"))
+		if err1 != nil || err2 != nil {
+			http.Error(w, "Invalid params", http.StatusBadRequest)
+		}
+		links, err := handler.LinkRepository.GetAll(uint(limit), uint(offset))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		count := handler.LinkRepository.Count()
+		response.JsonResponse(w, &GetAllLinksResponse{
+			links,
+			count,
+		}, http.StatusOK)
 	}
 }

@@ -3,6 +3,7 @@ package link
 import (
 	"go/adv-demo/pkg/db"
 	"gorm.io/gorm/clause"
+	"log"
 )
 
 type LinkRepository struct {
@@ -55,4 +56,25 @@ func (repo *LinkRepository) FindById(id uint) (*Link, error) {
 		return nil, result.Error
 	}
 	return &link, nil
+}
+
+func (repo *LinkRepository) Count() int64 {
+	var count int64
+	repo.Database.Table("links").
+		Where("deleted_at is null").
+		Count(&count)
+	return count
+}
+
+func (repo *LinkRepository) GetAll(limit, offset uint) ([]Link, error) {
+	var links []Link
+	err := repo.Database.Table("links").
+		Find(&links, limit, offset).
+		Where("deleted_at is null").
+		Order("id").
+		Scan(&links)
+	if err != nil {
+		log.Println(err)
+	}
+	return links, nil
 }

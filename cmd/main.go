@@ -31,8 +31,10 @@ func main() {
 		Config:      conf,
 		AuthService: authService,
 	})
+
 	link.NewLinkHandler(router, link.LinkDeps{
 		LinkRepository: linkRepository,
+		Config:         conf,
 	})
 
 	//Midlewares
