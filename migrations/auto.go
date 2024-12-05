@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/joho/godotenv"
 	"go/adv-demo/internal/link"
+	"go/adv-demo/internal/stat"
 	"go/adv-demo/internal/user"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -15,9 +16,13 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file", err)
 	}
-	db, err := gorm.Open(postgres.Open(os.Getenv("DSN")), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(os.Getenv("DSN")), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		//Logger:                                   logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		log.Fatal("Error connecting to database while auto migration", err)
 	}
-	db.AutoMigrate(&link.Link{}, &user.User{})
+	db.AutoMigrate(&link.Link{}, &user.User{}, &stat.Stat{})
+
 }

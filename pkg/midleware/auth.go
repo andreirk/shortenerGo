@@ -31,6 +31,7 @@ func CheckAuthed(next http.Handler, config *config.Config) http.Handler {
 		data, isValid := jwt.NewJwt(config.Auth.Secret).Parse(token)
 		if !isValid {
 			writeUnauthorized(w)
+			return
 		}
 		//log.Println(data, isValid)
 		r.Context()

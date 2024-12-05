@@ -3,6 +3,7 @@ package link
 import (
 	"fmt"
 	"go/adv-demo/config"
+	"go/adv-demo/pkg/di"
 	"go/adv-demo/pkg/midleware"
 	"go/adv-demo/pkg/request"
 	"go/adv-demo/pkg/response"
@@ -14,21 +15,25 @@ import (
 
 type LinkDeps struct {
 	LinkRepository *LinkRepository
+	StatRepository di.IStatRepository
 	Config         *config.Config
 }
 
 type LinkHandler struct {
 	LinkRepository *LinkRepository
+	StatRepository di.IStatRepository
 }
 
 func NewLinkHandler(router *http.ServeMux, deps LinkDeps) *LinkHandler {
 	handler := &LinkHandler{
 		LinkRepository: deps.LinkRepository,
+		StatRepository: deps.StatRepository,
 	}
 	router.HandleFunc("POST /link", handler.Create())
 	router.Handle("PATCH /link/{id}", midleware.CheckAuthed(handler.Update(), deps.Config))
 	router.HandleFunc("DELETE /link/{id}", handler.Delete())
 	router.HandleFunc("GET /link/{hash}", handler.GoTo())
+	router.HandleFunc("GET /link", handler.GetAll())
 
 	return handler
 }
@@ -115,9 +120,7 @@ func (handler *LinkHandler) Delete() http.HandlerFunc {
 			return
 		}
 		response.JsonResponse(w, nil, http.StatusOK)
-
 		fmt.Println("Delete link request", id)
-
 	}
 }
 
@@ -129,16 +132,22 @@ func (handler *LinkHandler) GoTo() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		handler.StatRepository.AddClick(foundLink.ID)
 		http.Redirect(w, r, foundLink.Url, http.StatusTemporaryRedirect)
 	}
 }
 
 func (handler *LinkHandler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		limit, err1 := strconv.Atoi(r.URL.Query().Get("limit"))
-		offset, err2 := strconv.Atoi(r.URL.Query().Get("offset"))
-		if err1 != nil || err2 != nil {
-			http.Error(w, "Invalid params", http.StatusBadRequest)
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		if err != nil {
+			http.Error(w, "Invalid params, error:"+err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Invalid params, error:"+err.Error(), http.StatusBadRequest)
+			return
 		}
 		links, err := handler.LinkRepository.GetAll(uint(limit), uint(offset))
 		if err != nil {
