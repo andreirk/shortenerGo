@@ -10,17 +10,18 @@ import (
 	"net/http"
 )
 
-type AuthHandlerDeps struct {
-	*config.Config
-	*AuthService
-}
-type AuthHandler struct {
+type HandlerDeps struct {
 	*config.Config
 	*AuthService
 }
 
-func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
-	handler := &AuthHandler{
+type Handler struct {
+	Config      *config.Config
+	AuthService *AuthService
+}
+
+func NewHandler(router *http.ServeMux, deps HandlerDeps) {
+	handler := &Handler{
 		Config:      deps.Config,
 		AuthService: deps.AuthService,
 	}
@@ -28,7 +29,7 @@ func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
 	router.HandleFunc("POST /auth/login", handler.Login())
 }
 
-func (handler *AuthHandler) Register() http.HandlerFunc {
+func (handler *Handler) Register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		payload, err := request.HandleBody[RegisterRequest](&w, r)
 		if err != nil {
@@ -40,12 +41,12 @@ func (handler *AuthHandler) Register() http.HandlerFunc {
 			RegisterSuccess: true,
 			Message:         "Please login",
 		}
-		response.JsonResponse(w, res, http.StatusOK)
+		response.JsonResponse(w, res, http.StatusCreated)
 		fmt.Println("Register")
 	}
 }
 
-func (handler *AuthHandler) Login() http.HandlerFunc {
+func (handler *Handler) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		payload, err := request.HandleBody[LoginRequest](&w, r)
 		if err != nil {

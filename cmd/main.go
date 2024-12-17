@@ -15,8 +15,7 @@ import (
 	"net/http"
 )
 
-func main() {
-	conf := config.LoadConfig()
+func App(conf *config.Config) http.Handler {
 	router := http.NewServeMux()
 	dbInstance := db.NewDb(conf)
 	eventBus := event.NewEventBus()
@@ -35,7 +34,7 @@ func main() {
 
 	//Handlers
 	hello.NewHelloHandler(router)
-	auth.NewAuthHandler(router, auth.AuthHandlerDeps{
+	auth.NewHandler(router, auth.HandlerDeps{
 		Config:      conf,
 		AuthService: authService,
 	})
@@ -50,18 +49,26 @@ func main() {
 		Config:         conf,
 	})
 
+	go statService.AddClick()
+
 	//Midlewares
 	midlewareStack := midleware.Chain(
 		midleware.CORS,
 		midleware.Logging,
 	)
 
+	return midlewareStack(router)
+}
+
+func main() {
+	conf := config.LoadConfig("local")
+	app := App(conf)
 	server := http.Server{
 		Addr:    "localhost:" + conf.Port,
-		Handler: midlewareStack(router),
+		Handler: app,
 	}
-	go statService.AddClick()
-	fmt.Println("Server is listening on port:", conf.Port)
+
+	fmt.Println("Server is listening on:", server.Addr)
 	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)

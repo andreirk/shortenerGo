@@ -7,6 +7,7 @@ import (
 	"go/adv-demo/internal/user"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"log"
 	"os"
 )
@@ -18,11 +19,14 @@ func main() {
 	}
 	db, err := gorm.Open(postgres.Open(os.Getenv("DSN")), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
-		//Logger:                                   logger.Default.LogMode(logger.Info),
+		Logger:                                   logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		log.Fatal("Error connecting to database while auto migration", err)
 	}
-	db.AutoMigrate(&link.Link{}, &user.User{}, &stat.Stat{})
-
+	err = db.AutoMigrate(&link.Link{}, &user.User{}, &stat.Stat{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Database migrated")
 }

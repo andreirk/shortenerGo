@@ -3,10 +3,11 @@ services:
     container_name: postgres
 #    image: postgres:16.4
     image: postgres:11.18-bullseye
-#    environment:
-#      POSTGRES_USER: postgres
-#      POSTGRES_PASSWORD: pass
-#      PG_DATA: /data/postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: link
+      PG_DATA: /data/postgres
     volumes:
       - ../../postgres-data:/data/postgres
     ports:
